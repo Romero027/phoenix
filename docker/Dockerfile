@@ -19,17 +19,22 @@ RUN DEBIAN_FRONTEND=noninteractive apt install -y \
         cmake \
         git \
         lsb-release \
-        numactl
-
-RUN DEBIAN_FRONTEND=noninteractive apt install -y \
+        numactl \
+        && DEBIAN_FRONTEND=noninteractive apt install -y \
         --allow-unauthenticated --allow-downgrades --allow-change-held-packages --no-install-recommends \
-        libclang-dev libnuma-dev librdmacm-dev libibverbs-dev protobuf-compiler
-
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
+        libclang-dev libnuma-dev librdmacm-dev libibverbs-dev protobuf-compiler \
+        && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+        && echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
 ENV PATH="/root/.cargo/bin:${PATH}"
 RUN cargo install cargo-make
 
-RUN git clone https://github.com/phoenix-dataplane/phoenix.git --recursive
+WORKDIR /phoenix
+COPY . ./
 
-WORKDIR phoenix
+RUN cargo make
+WORKDIR /phoenix/experimental/mrpc
+RUN cat load-mrpc-plugins.toml >> /phoenix/phoenix.toml && cargo make && cargo build --release --workspace -p rpc_echo
+WORKDIR /phoenix
+RUN cargo make deploy-plugins
+
+WORKDIR /phoenix/experimental/mrpc

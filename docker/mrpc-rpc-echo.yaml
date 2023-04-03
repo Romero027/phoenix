@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mrpc-frontend
+spec:
+  clusterIP: 10.96.88.88
+  ports:
+  - name: mrpc-frontend
+    port: 7878
+    targetPort: 7878
+  selector:
+    app: mrpc-frontend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mrpc-frontend
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: mrpc-frontend
+      labels:
+        app: mrpc-frontend
+    spec:
+      hostNetwork: true
+      hostIPC: true
+      containers:
+      - image: xzhu0027/phoenixos-rpc-echo
+        name: mrpc-frontend
+        command: ["./rpc_echo_frontend"]
+        volumeMounts:
+          - name: tmp-volume
+            mountPath: /tmp/phoenix
+        securityContext:
+          capabilities:
+            add:
+              - IPC_LOCK
+          privileged: true
+      volumes:
+        - name: tmp-volume
+          hostPath:
+            path: /tmp/phoenix
+            type: Directory
+  selector:
+    matchLabels:
+      app: mrpc-frontend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mrpc-server
+spec:
+  clusterIP: 10.96.77.76
+  ports:
+  - name: mrpc-server
+    port: 5000
+    targetPort: 5000
+  selector:
+    app: mrpc-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mrpc-server
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: mrpc-server
+      labels:
+        app: mrpc-server
+    spec:
+      hostNetwork: true
+      hostIPC: true
+      containers:
+      - image: xzhu0027/phoenixos-rpc-echo
+        name: mrpc-server
+        command: ["./rpc_echo_server"]
+        volumeMounts:
+          - name: tmp-volume
+            mountPath: /tmp/phoenix
+        securityContext:
+          capabilities:
+            add:
+              - IPC_LOCK
+          privileged: true
+      volumes:
+        - name: tmp-volume
+          hostPath:
+            path: /tmp/phoenix
+            type: Directory
+  selector:
+    matchLabels:
+      app: mrpc-server
